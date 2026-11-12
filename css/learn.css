@@ -1,0 +1,222 @@
+/* ============================================================
+   Learn mode
+   ============================================================ */
+
+.learn [hidden] { display: none !important; }
+.learn [tabindex="-1"]:focus { outline: none; }
+
+/* Overall progress: mastered / still learning / not studied */
+
+.learn-progress { margin-bottom: 24px; }
+
+.learn-progress__bar {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.learn-progress__seg {
+  flex: none;
+  width: 0;
+  height: 100%;
+  transition: width 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* A thin gap between neighbouring segments (zero-width segments draw nothing). */
+.learn-progress__seg + .learn-progress__seg { box-shadow: -2px 0 0 var(--bg); }
+.learn-progress__seg--mastered { background: var(--success); }
+.learn-progress__seg--learning { background: var(--warning); }
+.learn-progress__seg--new { background: var(--surface-2); }
+
+.learn-progress__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+.learn-progress__item { display: inline-flex; align-items: center; gap: 6px; }
+.learn-progress__dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.learn-progress__item--mastered .learn-progress__dot { background: var(--success); }
+.learn-progress__item--learning .learn-progress__dot { background: var(--warning); }
+.learn-progress__item--new .learn-progress__dot { background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--muted); }
+.learn-progress__count { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Screens */
+
+.learn__screen { animation: learn-enter 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@keyframes learn-enter { from { opacity: 0; transform: translateY(8px); } }
+@keyframes learn-pop { from { opacity: 0; transform: translateY(-4px); } }
+
+.learn__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 4px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.learn__round { color: var(--text); font-weight: 800; }
+
+/* Question panel */
+
+.learn-q > * + * { margin-top: 24px; }
+.learn-q > .learn__live:empty,
+.learn-q > .learn__actions:empty { margin-top: 0; }
+
+.learn-q__label { display: block; margin-bottom: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+
+.learn__live > * { animation: learn-pop 0.2s ease; }
+.learn__live > * + * { margin-top: 12px; }
+
+.learn-feedback { min-width: 0; }
+.learn-feedback__answer {
+  margin-top: 4px;
+  color: var(--text);
+  font-weight: 400;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.learn-feedback__key { font-weight: 700; }
+
+.learn__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.learn__override { margin-right: auto; color: var(--muted); }
+.learn__override:hover { color: var(--text); }
+
+/* Written */
+
+.learn-write { display: flex; gap: 10px; }
+.learn-write .answer-input { flex: 1; min-width: 0; }
+.learn-write .btn { height: 52px; padding: 0 22px; border-radius: 12px; }
+
+.learn .answer-input[readonly] { cursor: default; }
+.learn .answer-input.is-correct { background: var(--success-soft); }
+.learn .answer-input.is-close { border-color: var(--warning); background: var(--warning-soft); }
+
+.learn-write__skip { height: 32px; margin: 8px 0 0 -10px; padding: 0 10px; font-size: 14px; color: var(--muted); }
+.learn-write__skip:hover { color: var(--text); }
+
+.learn-compare { display: grid; gap: 10px; }
+.learn-compare__row { min-width: 0; padding: 12px 16px 14px; border: 2px solid var(--border); border-radius: 12px; }
+.learn-compare__row--given { border-color: var(--danger); }
+.learn-compare__row--correct { border-color: var(--success); background: var(--success-soft); }
+.learn-compare__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px -10px 4px 0; }
+.learn-compare__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.learn-compare__head .learn-compare__label { margin: 0; }
+.learn-compare__text { display: block; font-size: 17px; white-space: pre-wrap; overflow-wrap: anywhere; }
+s.learn-compare__text { color: var(--muted); text-decoration-color: var(--danger); text-decoration-thickness: 2px; }
+.learn-compare .speak-btn { width: 34px; height: 34px; }
+
+/* Self-graded (long answers) */
+
+.learn-card__reveal { display: flex; justify-content: center; padding: 4px 0; }
+.learn-card__answer {
+  margin-bottom: 20px;
+  padding: 6px 16px 16px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  animation: learn-pop 0.2s ease;
+}
+
+/* Round summary */
+
+.learn-summary > * + * { margin-top: 28px; }
+.learn-summary__head { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.learn-summary__head h2 { font-size: 26px; line-height: 1.25; letter-spacing: -0.01em; }
+.learn-summary__icon { background: var(--success-soft); color: var(--success); }
+
+.learn-stat--mastered .stat__value { color: var(--success); }
+.learn-stat--learning .stat__value { color: var(--warning); }
+
+.learn-summary__title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.learn-terms { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.learn-term {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  align-items: start;
+  gap: 6px 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.learn-term__term,
+.learn-term__def { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.learn-term__term { font-weight: 650; }
+.learn-term__def { color: var(--muted); }
+
+.learn-badge {
+  justify-self: end;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.learn-badge--mastered { background: var(--success-soft); color: var(--success); }
+.learn-badge--learning { background: var(--warning-soft); color: var(--warning); }
+.learn-badge--new { background: var(--surface-2); color: var(--muted); }
+
+.learn-summary__actions { display: flex; justify-content: center; }
+
+/* Completion */
+
+.learn-done .result { padding: 28px 8px; }
+.learn-done .result p { max-width: 420px; }
+.learn-done__icon { background: var(--warning-soft); color: var(--warning); }
+
+/* Options modal */
+
+.learn-opt-switches { display: flex; flex-direction: column; }
+.learn-reset { align-self: flex-start; }
+
+/* Responsive & motion */
+
+@media (max-width: 640px) {
+  .learn-progress { margin-bottom: 18px; }
+  .learn-progress__legend { gap: 4px 14px; }
+  .learn-write .btn { padding: 0 16px; }
+  .learn__actions .btn { flex: 1 1 auto; }
+  .learn__override { margin-right: 0; }
+  .learn-summary > * + * { margin-top: 22px; }
+  .learn-summary__head h2 { font-size: 22px; }
+  .learn-summary .stat-row { flex-wrap: nowrap; gap: 8px; }
+  .learn-summary .stat { flex: 1 1 0; min-width: 0; padding: 10px 6px; }
+  .learn-summary .stat__value { font-size: 20px; }
+  .learn-summary__actions .btn { width: 100%; }
+  .learn-term { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 14px; }
+  .learn-term__def { grid-column: 1 / -1; grid-row: 2; }
+  .learn-term .learn-badge { grid-column: 2; grid-row: 1; }
+  .learn-done .result { padding: 12px 0; }
+  .learn-done .result h2 { font-size: 23px; }
+  .learn-done .result__actions { flex-direction: column; align-self: stretch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learn__screen,
+  .learn__live > *,
+  .learn-card__answer { animation: none; }
+  .learn-progress__seg { transition: none; }
+}

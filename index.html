@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flashcards</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/flashcards.css">
+  <link rel="stylesheet" href="css/learn.css">
+  <link rel="stylesheet" href="css/test.css">
+  <link rel="stylesheet" href="css/match.css">
+  <link rel="stylesheet" href="css/blast.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__left">
+      <a class="brand" href="#/">
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="2" y="5" width="20" height="15" rx="3" fill="currentColor" opacity=".35"/>
+          <rect x="9" y="11" width="21" height="16" rx="3" fill="currentColor"/>
+        </svg>
+        <span>Flashcards</span>
+      </a>
+      <nav class="topnav" aria-label="Library">
+        <a class="topnav__link" href="#/" data-nav="sets">Sets</a>
+        <a class="topnav__link" href="#/folders" data-nav="folders">Folders</a>
+      </nav>
+    </div>
+    <a class="btn btn-primary" href="#/new">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </span>
+      <span>Create<span class="hide-sm"> set</span></span>
+    </a>
+  </header>
+
+  <main id="app" class="page"></main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Classic scripts (not modules) so the app also works when opened straight from disk. Order matters. -->
+  <script src="js/core.js"></script>
+  <script src="js/flashcards.js"></script>
+  <script src="js/learn.js"></script>
+  <script src="js/test.js"></script>
+  <script src="js/match.js"></script>
+  <script src="js/blast.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

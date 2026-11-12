@@ -1,0 +1,651 @@
+/* ============================================================
+   Blast
+   The arena is a game canvas with its own fixed "deep space"
+   palette in both themes. Everything around it (start/result
+   panels, hints) uses the theme tokens.
+   ============================================================ */
+
+.blast-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------
+   Start & result screens
+   ------------------------------------------------------------ */
+
+.blast-intro__text { max-width: 460px; color: var(--muted); }
+.blast-intro__meta { font-size: 14px; font-weight: 600; color: var(--muted); }
+.blast-intro .kbd-hint { margin-top: 4px; }
+
+.blast-best,
+.blast-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.blast-best { background: var(--surface-2); color: var(--text); }
+.blast-record { background: var(--accent-soft); color: var(--accent-text); animation: pop-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.blast-best .icon,
+.blast-record .icon { color: var(--star); }
+
+.blast-final { display: flex; flex-direction: column; align-items: center; margin-top: -4px; }
+.blast-final__value {
+  font-size: 60px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.blast-final__label { font-size: 14px; font-weight: 600; color: var(--muted); }
+.blast-result .stat-row { margin-top: 4px; }
+
+.blast-hint { margin-top: 14px; }
+
+/* ------------------------------------------------------------
+   Arena
+   ------------------------------------------------------------ */
+
+.blast-arena {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  height: min(68vh, 560px);
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 16px;
+  background:
+    radial-gradient(60% 50% at 12% 0%, rgb(112 80 230 / 0.34), transparent 70%),
+    radial-gradient(50% 45% at 100% 88%, rgb(40 150 225 / 0.24), transparent 70%),
+    radial-gradient(38% 32% at 68% 34%, rgb(220 90 180 / 0.1), transparent 70%),
+    linear-gradient(180deg, #080a1f 0%, #0d1034 55%, #0a0c27 100%);
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  scroll-margin-top: calc(var(--topbar-h) + 12px);
+  scroll-margin-bottom: 16px;
+}
+
+/* Starfield: two tiled layers drifting at different speeds (parallax). Each layer is one
+   tile taller than the arena and moves exactly one tile per loop, so the loop is seamless. */
+.blast-stars {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  will-change: transform;
+}
+.blast-stars--far {
+  top: -240px;
+  background-size: 240px 240px;
+  background-image:
+    radial-gradient(1px 1px at 18px 26px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 64px 182px, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1px 1px at 112px 92px, rgb(255 255 255 / 0.75), transparent),
+    radial-gradient(1px 1px at 152px 214px, rgb(200 210 255 / 0.7), transparent),
+    radial-gradient(1px 1px at 196px 48px, rgb(255 255 255 / 0.55), transparent),
+    radial-gradient(1px 1px at 226px 140px, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(1px 1px at 38px 122px, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 134px 12px, rgb(255 230 240 / 0.6), transparent),
+    radial-gradient(1px 1px at 92px 234px, rgb(255 255 255 / 0.45), transparent);
+  opacity: 0.85;
+  animation: blast-drift-far 90s linear infinite;
+}
+.blast-stars--near {
+  top: -360px;
+  background-size: 360px 360px;
+  background-image:
+    radial-gradient(1.5px 1.5px at 42px 64px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 290px 30px, rgb(190 220 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 180px 210px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(1.5px 1.5px at 320px 300px, rgb(255 220 235 / 0.85), transparent),
+    radial-gradient(1.5px 1.5px at 96px 318px, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(1.2px 1.2px at 240px 140px, rgb(255 255 255 / 0.7), transparent);
+  animation: blast-drift-near 55s linear infinite;
+}
+@keyframes blast-drift-far { to { transform: translate3d(0, 240px, 0); } }
+@keyframes blast-drift-near { to { transform: translate3d(0, 360px, 0); } }
+
+/* HUD */
+
+.blast-hud {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 56px;
+  padding: 0 8px 0 16px;
+  background: linear-gradient(180deg, rgb(4 6 22 / 0.7), rgb(4 6 22 / 0.3));
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.blast-hud__stats { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.blast-hud__stat { display: flex; flex-direction: column; line-height: 1.1; }
+.blast-hud__label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa3d6; }
+.blast-hud__value { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.blast-hud__score { min-width: 3ch; transform-origin: left center; }
+.blast-hud__streak {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(255 196 77 / 0.16);
+  color: #ffd36b;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.blast-hud__streak.is-on { opacity: 1; transform: none; }
+.blast-hud__side { display: flex; flex: none; align-items: center; gap: 6px; }
+
+.blast-hearts { display: flex; gap: 3px; }
+.blast-heart { display: inline-flex; color: rgb(255 255 255 / 0.28); transition: color 0.2s; }
+.blast-heart .icon { width: 22px; height: 22px; }
+.blast-heart.is-alive { color: #ff5c7c; }
+.blast-heart.is-alive svg { fill: currentColor; filter: drop-shadow(0 0 5px rgb(255 92 124 / 0.6)); }
+
+.blast-hud .icon-btn { color: rgb(255 255 255 / 0.75); }
+.blast-hud .icon-btn:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+.blast-hud .icon-btn:disabled { opacity: 0.35; cursor: default; background: transparent; }
+
+/* The play field below the HUD */
+
+.blast-field { position: relative; z-index: 1; flex: 1; min-height: 0; overflow: hidden; cursor: crosshair; }
+.blast-rocks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.blast-fx { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+/* ------------------------------------------------------------
+   Asteroids
+   ------------------------------------------------------------ */
+
+.blast-rock {
+  --rock-hi: #8a80a8;
+  --rock-mid: #50476d;
+  --rock-lo: #282240;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  text-align: center;
+  cursor: crosshair;
+  pointer-events: auto;
+  will-change: transform;
+  transform: translate3d(-9999px, 0, 0);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.blast-rock[data-tint="2"] { --rock-hi: #9c8a74; --rock-mid: #5e4e3e; --rock-lo: #30271e; }
+.blast-rock[data-tint="3"] { --rock-hi: #8194aa; --rock-mid: #475769; --rock-lo: #222b38; }
+.blast-rock:disabled { cursor: default; }
+.blast-rock:focus-visible { outline: none; }
+
+.blast-rock__inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  min-height: 66px;
+  max-width: 216px;
+  padding: 14px 18px;
+}
+
+/* The rocky blob: irregular radii, a few craters, inner shading. */
+.blast-rock__body {
+  position: absolute;
+  inset: 0;
+  border-radius: 58% 42% 52% 48% / 50% 44% 56% 50%;
+  background:
+    radial-gradient(10px 8px at 18% 26%, rgb(0 0 0 / 0.32) 55%, rgb(255 255 255 / 0.1) 75%, transparent 90%),
+    radial-gradient(7px 6px at 84% 28%, rgb(0 0 0 / 0.28) 55%, rgb(255 255 255 / 0.08) 75%, transparent 90%),
+    radial-gradient(12px 9px at 78% 80%, rgb(0 0 0 / 0.26) 55%, rgb(255 255 255 / 0.08) 75%, transparent 90%),
+    radial-gradient(6px 5px at 14% 74%, rgb(0 0 0 / 0.26) 55%, transparent 90%),
+    radial-gradient(140% 130% at 28% 18%, var(--rock-hi) 0%, var(--rock-mid) 48%, var(--rock-lo) 100%);
+  box-shadow:
+    inset -9px -11px 18px rgb(0 0 0 / 0.45),
+    inset 7px 7px 12px rgb(255 255 255 / 0.14),
+    0 8px 22px rgb(0 0 0 / 0.45);
+  transition: filter 0.12s, box-shadow 0.12s;
+  animation: blast-tumble 5s ease-in-out infinite alternate;
+}
+.blast-rock[data-shape="2"] .blast-rock__body { border-radius: 46% 54% 42% 58% / 60% 44% 56% 40%; }
+.blast-rock[data-shape="3"] .blast-rock__body { border-radius: 52% 48% 60% 40% / 44% 58% 42% 56%; }
+.blast-rock[data-shape="4"] .blast-rock__body { border-radius: 40% 60% 54% 46% / 52% 40% 60% 48%; }
+.blast-rock__body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--danger);
+  opacity: 0;
+}
+@keyframes blast-tumble {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+
+.blast-rock:not(:disabled):hover .blast-rock__body,
+.blast-rock:not(:disabled):focus-visible .blast-rock__body {
+  filter: brightness(1.18);
+  box-shadow:
+    inset -9px -11px 18px rgb(0 0 0 / 0.45),
+    inset 7px 7px 12px rgb(255 255 255 / 0.14),
+    0 0 0 2px rgb(158 240 255 / 0.75),
+    0 0 22px rgb(158 240 255 / 0.45);
+}
+.blast-rock:not(:disabled):focus-visible .blast-rock__body {
+  box-shadow:
+    inset -9px -11px 18px rgb(0 0 0 / 0.45),
+    0 0 0 3px #fff,
+    0 0 22px rgb(158 240 255 / 0.6);
+}
+
+.blast-rock__key {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.92);
+  color: #1b1f3b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.blast-rock__key .icon { width: 12px; height: 12px; }
+
+.blast-rock__text {
+  position: relative;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  max-width: 180px;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.85), 0 0 10px rgb(0 0 0 / 0.5);
+}
+.blast-rock__text[data-size="m"] { font-size: 13.5px; -webkit-line-clamp: 4; }
+.blast-rock__text[data-size="s"],
+.blast-rock__text[data-size="xs"] { font-size: 12.5px; line-height: 1.2; -webkit-line-clamp: 4; }
+
+/* Wrong shot: flash red, shake (JS), then drift on dimmed and out of play. */
+.blast-rock.is-wrong { opacity: 0.5; transition: opacity 0.5s ease 0.35s; }
+.blast-rock.is-wrong .blast-rock__body::after { opacity: 0.45; animation: blast-wrong-flash 0.55s ease-out; }
+.blast-rock.is-wrong .blast-rock__key { background: var(--danger); color: #fff; }
+.blast-rock.is-wrong .blast-rock__text { text-decoration: line-through; text-decoration-color: rgb(255 255 255 / 0.6); }
+@keyframes blast-wrong-flash { 0%, 35% { opacity: 0.95; } }
+
+/* Correct hit: pop and burn away (the explosion is drawn in the fx layer). */
+.blast-rock.is-hit .blast-rock__inner { animation: blast-pop 0.34s ease-out forwards; }
+@keyframes blast-pop {
+  30% { transform: scale(1.12); filter: brightness(1.8); opacity: 1; }
+  to { transform: scale(1.35); filter: brightness(2.4); opacity: 0; }
+}
+
+/* The rest of a finished wave. */
+.blast-rock.is-fading { opacity: 0; transition: opacity 0.35s ease; }
+
+/* ------------------------------------------------------------
+   Effects
+   ------------------------------------------------------------ */
+
+.blast-laser { position: absolute; height: 0; transform-origin: 0 0; }
+.blast-laser::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgb(120 220 255 / 0.15), #9ef0ff 55%, #fff);
+  box-shadow: 0 0 10px #5fd4ff, 0 0 22px rgb(95 212 255 / 0.6);
+  animation: blast-laser 0.24s ease-out forwards;
+}
+@keyframes blast-laser {
+  from { opacity: 1; transform: scaleY(1.5); }
+  to { opacity: 0; transform: scaleY(0.3); }
+}
+
+.blast-boom { position: absolute; width: 0; height: 0; }
+.blast-boom__flash {
+  position: absolute;
+  left: -55px;
+  top: -55px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 10%, #ffe08a 24%, rgb(255 140 60 / 0.7) 44%, transparent 70%);
+  animation: blast-flash 0.45s ease-out forwards;
+}
+.blast-boom__ring {
+  position: absolute;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgb(255 220 150 / 0.9);
+  border-radius: 50%;
+  animation: blast-ring 0.55s ease-out forwards;
+}
+.blast-spark {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c, #ffd36b);
+  box-shadow: 0 0 8px var(--c, #ffd36b);
+  animation: blast-spark 0.6s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+.blast-spark.is-chunk {
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 8px;
+  border-radius: 3px 5px 2px 4px;
+  background: #6d6380;
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.3);
+  animation-name: blast-chunk;
+}
+@keyframes blast-flash {
+  from { transform: scale(0.2); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+@keyframes blast-ring {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(2.6); opacity: 0; border-width: 1px; }
+}
+@keyframes blast-spark {
+  from { transform: translate(0, 0) scale(1); opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+@keyframes blast-chunk {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+
+.blast-float {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #ffe27a;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.6), 0 0 16px rgb(255 200 80 / 0.55);
+  transform: translate(-50%, -50%);
+  animation: blast-rise 0.95s ease-out forwards;
+}
+.blast-float small { font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #ffd36b; }
+@keyframes blast-rise {
+  from { opacity: 0; transform: translate(-50%, -30%) scale(0.8); }
+  20% { opacity: 1; transform: translate(-50%, -70%) scale(1.1); }
+  to { opacity: 0; transform: translate(-50%, -170%) scale(1); }
+}
+
+.blast-banner {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  top: 28%;
+  padding: 0 16px;
+  text-align: center;
+  pointer-events: none;
+  animation: blast-banner 1.5s ease-out forwards;
+}
+.blast-banner__title {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  text-shadow: 0 0 24px rgb(120 140 255 / 0.9), 0 2px 8px rgb(0 0 0 / 0.6);
+}
+.blast-banner__sub { margin-top: 4px; font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a9b6ff; }
+@keyframes blast-banner {
+  0% { opacity: 0; transform: scale(0.7); }
+  15% { opacity: 1; transform: scale(1.06); }
+  25% { transform: scale(1); }
+  75% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+.blast-damage {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 3px rgb(255 80 110 / 0.8), inset 0 0 90px rgb(255 50 90 / 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   The prompt "ship" at the bottom
+   ------------------------------------------------------------ */
+
+.blast-ship {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  cursor: default;
+}
+.blast-ship__cannon {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -12px;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 13px solid #8fe6ff;
+  filter: drop-shadow(0 0 6px #4cc3ff);
+}
+.blast-ship__card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 6px 12px 16px;
+  background: rgb(14 18 50 / 0.9);
+  border: 1px solid rgb(140 160 255 / 0.3);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25), 0 -6px 28px rgb(70 90 255 / 0.22);
+  color: #eef0ff;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.blast-ship__main { flex: 1; min-width: 0; padding-top: 2px; }
+.blast-ship__label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa3d6; }
+.blast-ship__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.blast-ship__text[data-size="m"] { font-size: 17px; }
+.blast-ship__text[data-size="s"] { font-size: 15px; line-height: 1.35; }
+.blast-ship__text[data-size="xs"] { font-size: 14px; line-height: 1.35; }
+.blast-ship .icon-btn { flex: none; color: #aab3e6; }
+.blast-ship .icon-btn:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+
+/* The correct answer, shown above the prompt when it gets away. */
+.blast-reveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 18px);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.blast-reveal.is-visible { opacity: 1; transform: none; }
+.blast-reveal__box {
+  max-width: 100%;
+  padding: 8px 16px;
+  border: 1px solid rgb(120 255 190 / 0.45);
+  border-radius: 12px;
+  background: rgb(16 110 74 / 0.94);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.4);
+  color: #eafff4;
+  text-align: center;
+}
+.blast-reveal__label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9df5c9; }
+.blast-reveal__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------
+   Pause
+   ------------------------------------------------------------ */
+
+.blast-pause {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(6 8 26 / 0.74);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0s linear 0.15s;
+}
+.blast-pause.is-visible { opacity: 1; visibility: visible; transition: opacity 0.15s; }
+.blast-pause__box { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.blast-pause h2 { font-size: 30px; letter-spacing: -0.01em; }
+.blast-pause__hint { font-size: 13px; color: #9aa3d6; }
+
+/* Freeze every CSS animation in the arena while paused (the game clock stops too). */
+.blast-arena.is-paused .blast-stars,
+.blast-arena.is-paused .blast-field *,
+.blast-arena.is-paused .blast-field *::before,
+.blast-arena.is-paused .blast-field *::after { animation-play-state: paused; }
+
+/* ------------------------------------------------------------
+   Reduced motion: no drift, wobble, tumble or particles; fades only.
+   ------------------------------------------------------------ */
+
+.blast-arena.is-reduced .blast-stars,
+.blast-arena.is-reduced .blast-rock__body { animation: none; }
+.blast-arena.is-reduced .blast-rock.is-hit .blast-rock__inner { animation: blast-fade-out 0.3s ease-out forwards; }
+.blast-arena.is-reduced .blast-boom__ring { display: none; }
+.blast-arena.is-reduced .blast-boom__flash { animation: blast-fade-out 0.4s ease-out forwards; }
+.blast-arena.is-reduced .blast-float { animation: blast-fade-out 1s ease-in forwards; }
+.blast-arena.is-reduced .blast-banner { animation: blast-fade-out 1.5s ease-in forwards; }
+.blast-arena.is-reduced .blast-laser::before { animation: blast-fade-out 0.24s ease-out forwards; }
+@keyframes blast-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .blast-stars,
+  .blast-rock__body { animation: none; }
+  .blast-hud__streak,
+  .blast-reveal { transition: opacity 0.2s; transform: none; }
+}
+
+/* ------------------------------------------------------------
+   Touch & small screens
+   ------------------------------------------------------------ */
+
+@media (hover: none) {
+  .blast-rock__key,
+  .blast-pause__hint { display: none; }
+}
+
+@media (max-width: 640px) {
+  .blast-final__value { font-size: 46px; }
+
+  .blast-arena { height: min(72vh, 460px); min-height: 340px; }
+
+  .blast-hud { height: 52px; gap: 8px; padding: 0 4px 0 12px; }
+  .blast-hud__stats { gap: 14px; }
+  .blast-hud__value { font-size: 18px; }
+  .blast-hud__label { font-size: 10px; }
+  .blast-hud__streak { padding: 2px 7px; font-size: 11px; }
+  .blast-heart .icon { width: 20px; height: 20px; }
+
+  .blast-rock__inner { min-width: 72px; min-height: 58px; max-width: 160px; padding: 12px 15px; }
+  .blast-rock__text { max-width: 130px; font-size: 13.5px; }
+  .blast-rock__text[data-size="m"] { font-size: 12.5px; }
+  .blast-rock__text[data-size="s"],
+  .blast-rock__text[data-size="xs"] { font-size: 12px; }
+
+  .blast-ship { left: 8px; right: 8px; bottom: 8px; }
+  .blast-ship__card { padding: 8px 4px 10px 12px; }
+  .blast-ship__text { font-size: 17px; }
+  .blast-ship__text[data-size="m"] { font-size: 15px; }
+  .blast-ship__text[data-size="s"] { font-size: 14px; }
+  .blast-ship__text[data-size="xs"] { font-size: 13px; }
+
+  .blast-banner__title { font-size: 32px; }
+  .blast-float { font-size: 20px; }
+}
