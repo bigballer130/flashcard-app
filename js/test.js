@@ -99,18 +99,18 @@
 
   function makeItem(set, type, card, answerWith, matchSide) {
     if (type === 'trueFalse') {
-      const q = makeQuestion(card, answerWith);
-      const key = normalize(q.answer);
-      const decoys = set.cards.filter((c) => normalize(c[q.answerSide]) !== key);
+      const q = makeQuestion(card, answerWith, set.cards);
+      // A decoy must be wrong for this prompt — not just a different card that shares it.
+      const decoys = set.cards.filter((c) => !isAcceptedAnswer(q, c[q.answerSide]));
       const truth = !decoys.length || Math.random() < 0.5;
       return { type, q, truth, shown: truth ? q.answer : pick(decoys)[q.answerSide], response: null };
     }
     if (type === 'multipleChoice') {
-      const q = makeQuestion(card, answerWith);
+      const q = makeQuestion(card, answerWith, set.cards);
       return { type, q, choices: choicesFor(q, set.cards), response: null };
     }
-    if (type === 'matching') return { type, q: makeQuestion(card, matchSide), response: null };
-    return { type, q: makeQuestion(card, writtenSide(card, answerWith)), response: '' };
+    if (type === 'matching') return { type, q: makeQuestion(card, matchSide, set.cards), response: null };
+    return { type, q: makeQuestion(card, writtenSide(card, answerWith), set.cards), response: '' };
   }
 
   function buildTest(set, s) {
@@ -156,16 +156,15 @@
   // 'correct' | 'close' (written, small typo) | 'wrong' | 'blank'
   function grade(item) {
     if (!isAnswered(item)) return 'blank';
-    const answer = normalize(item.q.answer);
     switch (item.type) {
       case 'trueFalse':
         return item.response === item.truth ? 'correct' : 'wrong';
       case 'multipleChoice':
-        return normalize(item.choices[item.response]) === answer ? 'correct' : 'wrong';
+        return isAcceptedAnswer(item.q, item.choices[item.response]) ? 'correct' : 'wrong';
       case 'matching':
-        return normalize(item.section.options[item.response]) === answer ? 'correct' : 'wrong';
+        return isAcceptedAnswer(item.q, item.section.options[item.response]) ? 'correct' : 'wrong';
       default:
-        return gradeWritten(item.response, item.q.answer);
+        return gradeWritten(item.response, item.q.answers);
     }
   }
 

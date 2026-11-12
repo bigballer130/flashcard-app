@@ -172,7 +172,7 @@
 
       const card = queue[pos];
       const level = cardProgress(set.id, card.id).level;
-      const question = makeQuestion(card, settings.answerWith);
+      const question = makeQuestion(card, settings.answerWith, set.cards);
       const next = once(() => {
         pos++;
         ask();
@@ -352,7 +352,7 @@
           input.focus();
           return;
         }
-        const result = gradeWritten(given, question.answer);
+        const result = gradeWritten(given, question.answers);
         grade(card, level, result !== 'wrong');
         screen.refresh();
         if (result === 'correct') {

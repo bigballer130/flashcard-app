@@ -254,7 +254,7 @@
 
     function nextWave() {
       if (!g.running || g.over) return;
-      const q = makeQuestion(takeCard(), settings.answerWith);
+      const q = makeQuestion(takeCard(), settings.answerWith, set.cards);
       const choices = choicesFor(q, set.cards, 4);
       const n = choices.length;
       // Entry points are spread over a window of the right + top edges (s: 0 = bottom of the

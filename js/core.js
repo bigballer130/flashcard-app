@@ -273,17 +273,38 @@ function saveSettings(setId, mode, settings) {
 const SIDE_LABEL = { term: 'Term', definition: 'Definition' };
 const otherSide = (side) => (side === 'term' ? 'definition' : 'term');
 
-// answerWith: 'term' | 'definition' | 'both' ('both' picks a side at random per question)
-function makeQuestion(card, answerWith) {
+// answerWith: 'term' | 'definition' | 'both' ('both' picks a side at random per question).
+// Pass the set's cards so duplicates are handled: when several cards show the same prompt
+// (e.g. two terms that share the definition "Paris"), every one of their answers is correct.
+function makeQuestion(card, answerWith, cards = [card]) {
   const answerSide = answerWith === 'both' ? (Math.random() < 0.5 ? 'term' : 'definition') : answerWith;
   const promptSide = otherSide(answerSide);
-  return { card, promptSide, answerSide, prompt: card[promptSide], answer: card[answerSide] };
+  const question = { card, promptSide, answerSide, prompt: card[promptSide], answer: card[answerSide] };
+  question.answers = acceptedAnswers(question, cards);
+  return question;
+}
+
+// Every answer that's right for this question: its own, plus those of cards with the same prompt.
+function acceptedAnswers(question, cards) {
+  const prompt = normalize(question.prompt);
+  const answers = [question.answer];
+  for (const c of cards) {
+    if (c.id !== question.card.id && normalize(c[question.promptSide]) === prompt) answers.push(c[question.answerSide]);
+  }
+  return answers;
+}
+
+// True when `text` (a picked option or shown answer) is one of the question's right answers.
+function isAcceptedAnswer(question, text) {
+  const key = normalize(text);
+  return (question.answers || [question.answer]).some((a) => normalize(a) === key);
 }
 
 // Answer options for a multiple-choice question: the correct answer plus up to count-1
 // distinct wrong answers taken from `cards` (pass the whole set for the most variety).
+// Answers that would also be right (duplicates) are never offered as decoys.
 function choicesFor(question, cards, count = 4) {
-  const seen = new Set([normalize(question.answer)]);
+  const seen = new Set(acceptedAnswers(question, cards).map(normalize));
   const wrong = [];
   for (const c of shuffle(cards)) {
     if (wrong.length >= count - 1) break;
@@ -332,10 +353,11 @@ function answerVariants(answer) {
 // 'correct' — matches, ignoring case, punctuation and extra spaces
 // 'close'   — off by a small typo; count it as correct but show the right spelling
 // 'wrong'
+// `answer` may be a list of acceptable answers (question.answers).
 function gradeWritten(input, answer) {
   const given = normalize(input);
   if (!given) return 'wrong';
-  const variants = answerVariants(answer);
+  const variants = [].concat(answer).flatMap(answerVariants);
   if (variants.includes(given)) return 'correct';
   for (const v of variants) {
     const allowed = v.length < 4 ? 0 : v.length < 9 ? 1 : Math.min(3, Math.floor(v.length / 8));
