@@ -942,3 +942,26 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .flip__inner, .flip__face, .set-tile, .progress__bar, .toast { transition: none; }
 }
+
+/* ============================================================
+   Sync (js/sync.js)
+   ============================================================ */
+
+.topbar__right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sync-btn { position: relative; }
+.sync-btn__dot {
+  position: absolute; top: 7px; right: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: var(--muted); opacity: 0;
+}
+.sync-btn[data-state="idle"] .sync-btn__dot { opacity: 1; background: #1fa971; }
+.sync-btn[data-state="syncing"] .sync-btn__dot { opacity: 1; background: var(--accent); }
+.sync-btn[data-state="offline"] .sync-btn__dot { opacity: 1; background: var(--muted); }
+.sync-btn[data-state="error"] .sync-btn__dot { opacity: 1; background: var(--danger); }
+.sync-steps { margin: 12px 0 16px; padding-left: 22px; display: grid; gap: 8px; }
+.sync-steps a { color: var(--accent-text); font-weight: 600; text-decoration: underline; }
+.sync-error { min-height: 1.4em; margin: 8px 0 0; color: var(--danger); font-size: 14px; }
+.sync-status { margin: 12px 0; font-weight: 600; }
+.sync-status[data-state="error"] { color: var(--danger); }
+.sync-small { font-size: 13px; margin-top: 12px; }
