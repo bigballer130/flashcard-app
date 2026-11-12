@@ -34,12 +34,67 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   try {
+    const stamped = stampChanges(key, value);
     localStorage.setItem(key, JSON.stringify(value));
+    if (stamped) window.dispatchEvent(new Event('flashcards:changed'));
     return true;
   } catch {
     toast("Couldn't save — your browser's storage is full or turned off.", 'error');
     return false;
   }
+}
+
+/* ------------------------------------------------------------
+   Change tracking for sync (js/sync.js).
+   Every set, folder and per-set study entry gets a "last changed"
+   time; deleted ones leave a tombstone. Sync uses these to merge two
+   devices item by item: the newest change wins, a deletion wins over
+   older edits.
+   ------------------------------------------------------------ */
+
+const SYNC_META_KEY = 'flashcards.sync-meta.v1';
+const SYNCED = { [KEYS.sets]: 'sets', [KEYS.folders]: 'folders', [KEYS.study]: 'study' };
+let applyingRemote = false; // true while sync writes merged data, so it isn't re-stamped
+
+const syncEntries = (name, value) =>
+  name === 'study' ? Object.entries(value || {}) : (value || []).map((x) => [x.id, x]);
+
+function readSyncMeta() {
+  const m = readJSON(SYNC_META_KEY, {});
+  return {
+    stamps: m && typeof m.stamps === 'object' ? m.stamps : {},
+    tombstones: m && typeof m.tombstones === 'object' ? m.tombstones : {},
+  };
+}
+
+// Compares the new value of a collection with the current one and stamps what changed.
+function stampChanges(key, next) {
+  const name = SYNCED[key];
+  if (!name || applyingRemote) return false;
+  const before = new Map(syncEntries(name, db[name]));
+  const after = new Map(syncEntries(name, next));
+  const meta = readSyncMeta();
+  const now = Date.now();
+  let changed = false;
+  for (const [id, value] of after) {
+    const old = before.get(id);
+    if (old && JSON.stringify(old) === JSON.stringify(value)) continue;
+    meta.stamps[`${name}:${id}`] = now;
+    delete meta.tombstones[`${name}:${id}`];
+    changed = true;
+  }
+  for (const id of before.keys()) {
+    if (after.has(id)) continue;
+    meta.tombstones[`${name}:${id}`] = now;
+    delete meta.stamps[`${name}:${id}`];
+    changed = true;
+  }
+  if (changed) {
+    try {
+      localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+    } catch { /* sync metadata is best-effort */ }
+  }
+  return changed;
 }
 
 function loadAll() {

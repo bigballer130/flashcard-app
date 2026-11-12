@@ -70,12 +70,17 @@ function updateNav(view) {
 window.addEventListener('hashchange', route);
 
 // Keep several open tabs in sync — but only re-render pages that hold no in-progress work.
-window.addEventListener('storage', (e) => {
-  if (!Object.values(KEYS).includes(e.key)) return;
+// Also used by sync (js/sync.js) after it brings in changes from another device.
+function refreshFromStorage() {
   loadAll();
   const [view = '', , action] = parseHash();
   const passive = ['', 'folders', 'folder'].includes(view) || (view === 'set' && !action);
-  if (passive && !leaveGuard) render();
+  // Never yank away an open window (e.g. a folder being named); the page catches up on the next render.
+  if (passive && !leaveGuard && !document.querySelector('.modal')) render();
+}
+
+window.addEventListener('storage', (e) => {
+  if (Object.values(KEYS).includes(e.key)) refreshFromStorage();
 });
 
 /* ============================================================
